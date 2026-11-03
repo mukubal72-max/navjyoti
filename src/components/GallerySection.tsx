@@ -38,10 +38,8 @@ export default function GallerySection() {
   }, []);
 
   const galleryItems = useMemo(() => {
-    if (settings.gallery && settings.gallery.length > 0) {
-      return settings.gallery;
-    }
-    return DEFAULT_GALLERY;
+    const list = settings.gallery && settings.gallery.length > 0 ? settings.gallery : DEFAULT_GALLERY;
+    return list.filter(item => item && typeof item.url === 'string' && item.url.trim().length > 0);
   }, [settings.gallery]);
 
   const filteredItems = useMemo(() => {
@@ -123,7 +121,9 @@ export default function GallerySection() {
               </motion.div>
             ) : (
               filteredItems.map((item, index) => {
-                const ytEmbed = item.type === 'video' ? getYouTubeEmbedUrl(item.url) : null;
+                const ytEmbed = item.type === 'video' && item.url ? getYouTubeEmbedUrl(item.url) : null;
+                const ytIdMatch = item.url ? item.url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) : null;
+                const ytId = ytIdMatch?.[2];
                 
                 return (
                   <motion.div
@@ -140,10 +140,10 @@ export default function GallerySection() {
                     <div className="aspect-video w-full bg-slate-900 relative overflow-hidden">
                       {item.type === 'video' ? (
                         <>
-                          {ytEmbed ? (
+                          {ytEmbed && ytId ? (
                             <div className="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center">
                               <img 
-                                src={`https://img.youtube.com/vi/${item.url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2]}/0.jpg`} 
+                                src={`https://img.youtube.com/vi/${ytId}/0.jpg`} 
                                 alt={item.title} 
                                 className="w-full h-full object-cover opacity-60 absolute inset-0"
                               />

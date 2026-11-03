@@ -50,6 +50,13 @@ export default function Hero({ onOpenBooking, onNavigate }: HeroProps) {
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Safely clamped index to prevent out-of-bounds access if slides change dynamically
+  const safeIndex = slides.length > 0 
+    ? ((currentSlide % slides.length) + slides.length) % slides.length 
+    : 0;
+  const currentSlideData = slides.length > 0 ? (slides[safeIndex] || null) : null;
+  const hasSlides = slides.length > 0 && Boolean(currentSlideData?.url);
+
   useEffect(() => {
     if (slides.length <= 1) return;
     const interval = setInterval(() => {
@@ -58,7 +65,12 @@ export default function Hero({ onOpenBooking, onNavigate }: HeroProps) {
     return () => clearInterval(interval);
   }, [slides.length]);
 
-  const hasSlides = slides.length > 0;
+  // Keep state currentSlide in bounds if slide list shrinks
+  useEffect(() => {
+    if (slides.length > 0 && currentSlide >= slides.length) {
+      setCurrentSlide(0);
+    }
+  }, [slides.length, currentSlide]);
 
   const defaultTitle = (
     <>
@@ -70,8 +82,8 @@ export default function Hero({ onOpenBooking, onNavigate }: HeroProps) {
   );
 
   const renderTitle = () => {
-    if (settings.heroTitle === '') return null;
-    if (!settings.heroTitle) return defaultTitle;
+    if (settings?.heroTitle === '') return null;
+    if (!settings?.heroTitle) return defaultTitle;
     const index = settings.heroTitle.indexOf('.');
     if (index !== -1 && index < settings.heroTitle.length - 1) {
       const first = settings.heroTitle.substring(0, index + 1);
@@ -99,20 +111,20 @@ export default function Hero({ onOpenBooking, onNavigate }: HeroProps) {
         }`}
       >
         {/* Background Slider behind all components if slides exist */}
-        {hasSlides ? (
+        {hasSlides && currentSlideData ? (
           <div className="relative w-full overflow-hidden select-none bg-slate-950">
             {/* Blurred backing copy to prevent empty sidebar spaces on non-matching ratios */}
             <img
-              src={slides[currentSlide].url}
+              src={currentSlideData.url}
               alt=""
               className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-105 pointer-events-none"
               referrerPolicy="no-referrer"
             />
             <AnimatePresence initial={false}>
               <motion.img
-                key={currentSlide}
-                src={slides[currentSlide].url}
-                alt={slides[currentSlide].label}
+                key={safeIndex}
+                src={currentSlideData.url}
+                alt={currentSlideData.label || 'Hospital Facility'}
                 initial={{ opacity: 0.3 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -352,7 +364,7 @@ export default function Hero({ onOpenBooking, onNavigate }: HeroProps) {
                   key={idx}
                   onClick={() => setCurrentSlide(idx)}
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    idx === currentSlide ? 'w-6 bg-blue-500 shadow-md' : 'w-2 bg-white/40 hover:bg-white/60'
+                    idx === safeIndex ? 'w-6 bg-blue-500 shadow-md' : 'w-2 bg-white/40 hover:bg-white/60'
                   }`}
                   aria-label={`Go to slide ${idx + 1}`}
                 />
